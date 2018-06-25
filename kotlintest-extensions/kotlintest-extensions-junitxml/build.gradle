@@ -1,7 +1,12 @@
-apply plugin: 'org.junit.platform.gradle.plugin'
-
 dependencies {
     compile project(':kotlintest-core')
     compile project(':kotlintest-assertions')
     testCompile project(':kotlintest-runner:kotlintest-runner-junit5')
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR"
+    }
 }

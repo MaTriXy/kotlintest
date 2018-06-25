@@ -1,7 +1,7 @@
 package io.kotlintest
 
-import io.kotlintest.extensions.Extension
 import io.kotlintest.extensions.ProjectExtension
+import io.kotlintest.extensions.ProjectLevelExtension
 import io.kotlintest.extensions.TestListener
 
 /**
@@ -20,14 +20,19 @@ import io.kotlintest.extensions.TestListener
 abstract class AbstractProjectConfig {
 
   /**
-   * List of project wide [Extension]s.
+   * List of project wide extensions, ie instances of [ProjectLevelExtension]
    */
-  open fun extensions(): List<Extension> = emptyList()
+  open fun extensions(): List<ProjectLevelExtension> = emptyList()
 
   /**
-   * List of project wide [TestListener]s.
+   * List of project wide [TestListener] instances.
    */
   open fun listeners(): List<TestListener> = emptyList()
+
+  /**
+   * List of project wide [TestCaseFilter] instances.
+   */
+  open fun filters(): List<ProjectLevelFilter> = emptyList()
 
   /**
    * Override this function and return a number greater than 1 if you wish to
@@ -38,6 +43,17 @@ abstract class AbstractProjectConfig {
    * which will always (if defined) take priority over the value here.
    */
   open fun parallelism(): Int = 1
+
+  /**
+   * Sets the order of top level tests in a spec.
+   * The value set here will be used unless overriden in a [Spec].
+   * The value in a [Spec] is always taken in preference to the value here.
+   * Nested tests will always be executed in discovery order.
+   *
+   * If this function returns null then the default of Sequential
+   * will be used.
+   */
+  open fun testCaseOrder(): TestCaseOrder? = null
 
   /**
    * Executed before the first test of the project, but after the
@@ -51,3 +67,4 @@ abstract class AbstractProjectConfig {
    */
   open fun afterAll() {}
 }
+

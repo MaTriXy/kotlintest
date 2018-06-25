@@ -1,391 +1,153 @@
 KotlinTest
 ==========
 
+[<img src="https://img.shields.io/maven-central/v/io.kotlintest/kotlintest-core.svg?label=latest%20release"/>](http://search.maven.org/#search|ga|1|kotlintest) [![GitHub license](https://img.shields.io/github/license/kotlintest/kotlintest.svg)]()
+
 How to use
 ----------
 
-KotlinTest is published to Maven Central, so to use, simply add the dependency in test scope to your build file. 
-You can get the latest version from the little badge at the top of the readme.
+KotlinTest is published to Maven Central so you can get the latest version from the little badge at the top of the readme.
 
-Gradle:
+#### Gradle
 
-    testCompile "io.kotlintest:kotlintest-runner-junit5:xxx"
+To use in gradle, configure your build to use the [JUnit Platform](https://junit.org/junit5/docs/current/user-guide/#running-tests-build-gradle). For Gradle 4.6 and higher this is
+ as simple as adding `useJUnitPlatform()` inside the `test` block and then adding the KotlinTest dependency.
 
-Maven:
+```groovy
+test {
+  useJUnitPlatform()
+}
+
+dependencies {
+  testCompile 'io.kotlintest:kotlintest-runner-junit5:3.1.6'
+}
+```
+
+#### Maven
+
+For maven you must configure the surefire plugin for junit tests.
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>2.19.1</version>
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-surefire-provider</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+    </dependencies>
+</plugin>
+```
+
+And then add the KotlinTest JUnit5 runner to your build.
 
 ```xml
 <dependency>
     <groupId>io.kotlintest</groupId>
     <artifactId>kotlintest-runner-junit5</artifactId>
-    <version>xxx</version>
+    <version>3.1.6</version>
     <scope>test</scope>
 </dependency>
 ```
 
-Testing Styles<a name="styles"></a>
+
+
+
+
+
+
+
+
+
+Testing Styles
 --------------
 
-You can choose a testing style by extending StringSpec, WordSpec, FunSpec, ShouldSpec, FeatureSpec, BehaviorSpec or FreeSpec in your test class, and writing your tests either inside an `init {}` block or inside a lambda parameter in the class constructor.
+KotlinTest is permissive in the way you can lay out tests, which it calls a testing _style_.
+There are [several styles](styles.md) to pick from. There is no functional difference between these -
+ it is simply a matter of preference how you structure your tests. It is common to see several styles in one project.
+
+You can choose a testing style by extending StringSpec, WordSpec, FunSpec, ShouldSpec, FeatureSpec, BehaviorSpec, FreeSpec, DescribeSpec, or ExpectSpec in your test class,
+ and writing your tests either inside an `init {}` block or inside a lambda parameter in the class constructor.
+
+For example, using a lambda expression in the constructor, with the StringSpec gives us:
 
 ```kotlin
-import io.kotlintest.specs.StringSpec
-
-// test cases in init block
-class MyTests : StringSpec() {
-  init {
-    // tests here
-  }
-}
-
-// test cases in lambda expression
 class MyTests : StringSpec({
   // tests here
 })
 ```
 
-### String Spec
-
-`StringSpec` reduces the syntax to the absolute minimum. Just write a string followed by a lambda expression with your test code. If in doubt, use this style.
+And using an init block, again with the StringSpec looks like:
 
 ```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.StringSpec
-
 class MyTests : StringSpec() {
   init {
-    "strings.length should return size of string" {
-      "hello".length shouldBe 5
-    }
+    // tests here
   }
 }
 ```
 
-### Fun Spec
+Using the lambda expression avoids another level of indentation and looks neater,
+ but it means you cannot override methods in the parent class such as `beforeTest` and `afterTest`.
 
-`FunSpec` allows you to create tests similar to the junit style. You invoke a method called test, with a string parameter to describe the test, and then the test itself:
+[See an example](styles.md) of each testing style.
 
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.FunSpec
 
-class MyTests : FunSpec() {
-  init {
-    test("String.length should return the length of the string") {
-      "sammy".length shouldBe 5
-      "".length shouldBe 0
-    }
-  }
-}
-```
 
-### Should Spec
 
-`ShouldSpec` is similar to fun spec, but uses the keyword `should` instead of `test`. Eg:
 
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.ShouldSpec
 
-class MyTests : ShouldSpec() {
-  init {
-    should("return the length of the string") {
-      "sammy".length shouldBe 5
-      "".length shouldBe 0
-    }
-  }
-}
-```
 
-This can be nested in context strings too, eg
 
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.ShouldSpec
 
-class MyTests : ShouldSpec() {
-  init {
-    "String.length" {
-      should("return the length of the string") {
-        "sammy".length shouldBe 5
-        "".length shouldBe 0
-      }
-    }
-  }
-}
-```
 
-### Word Spec
 
-`WordSpec` uses the keyword `should` and uses that to nest test blocks after a context string, eg:
 
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.WordSpec
 
-class MyTests : WordSpec() {
-  init {
-    "String.length" should {
-      "return the length of the string" {
-        "sammy".length shouldBe 5
-        "".length shouldBe 0
-      }
-    }
-  }
-}
-```
-
-### Feature Spec
-
-`FeatureSpec` allows you to use `feature`, `and` and `scenario`, as such:
-
-```kotlin
-import io.kotlintest.specs.FeatureSpec
-
-class MyTests : FeatureSpec() {
-  init {
-    feature("the thingy bob") {
-      and("when enabled") {
-        scenario("should explode when I touch it") {
-          // test here
-        }
-        scenario("and should do this when I wibble it") {
-          // test heree
-        }
-      }
-    }
-  }
-}
-```
-
-`and` blocks are completely optional.
-s
-### Behavior Spec
-
-`BehaviorSpec` allows you to use `given`, `when`, `then`, and `and` as such:
-
-```kotlin
-import io.kotlintest.specs.BehaviorSpec
-
-class MyTests : BehaviorSpec() {
-  init {
-    given("a broomstick") {
-      and("I am a witch") {
-        `when`("I sit on it") {
-          then("I should be able to fly") {
-            // test code
-          }
-        }
-        `when`("I throw it away") {
-          then("it should come back") {
-            // test code
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-Because `when` is a keyword in Kotlin, we must enclose with backticks. Alternatively, there are title case versions
-available if you don't like the use of backticks, eg, `Given`, `When`, `Then`.
-
-`and` blocks are completely optional.
-
-### Free Spec
-
-`FreeSpec` allows you to nest arbitary levels of depth using the keyword `-` (minus), as such:
-
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.FreeSpec
-
-class MyTests : FreeSpec() {
-  init {
-    "String.length" - {
-      "should return the length of the string" {
-        "sammy".length shouldBe 5
-        "".length shouldBe 0
-      }
-    }
-  }
-}
-```
-
-### Expect Spec
-
-`ExpectSpec` allows you to use `context`, `and`, and `expect` as such:
-
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.FreeSpec
-
-class MyTests : FreeSpec() {
-  init {
-    context("the thingy bob") {
-      and("a button") {
-        expect("explode when I touch it") {
-          // test here
-        }
-        expect("wobble when I wibble it") {
-          // test heree
-        }
-      }
-    }
-  }
-}
-```
-
-`and` blocks are completely optional.
-
-Property-based Testing <a name="property-based"></a>
-----------------------
-
-### Property Testing
-
-To automatically test your code with many combinations of values, you can allow KotlinTest to do the boilerplate
-by using property testing with `generators`. You invoke `forAll` or `forNone` and pass in a function, where the function
-parameters are populated automatically with many different values. The function must specify explicitly the parameter
-types as KotlinTest will use those to determine what types of values to pass in.
-
-For example, here is a property test that checks that for any two Strings, the length of `a + b` 
-is the same as the length of `a` plus the length of `b`. In this example KotlinTest would 
-execute the test 100 times for random String combinations.
-
-```kotlin
-import io.kotlintest.properties.*
-import io.kotlintest.specs.StringSpec
-
-class PropertyExample: StringSpec() {
-  init {
-
-    "String size" {
-      forAll({ a: String, b: String ->
-        (a + b).length == a.length + b.length
-      })
-    }
-
-  }
-}
-```
-
-You can also specify the number of times a test is going to be run. Here is the same test but ran 2300 times.
-
-```kotlin
-import io.kotlintest.properties.*
-import io.kotlintest.specs.StringSpec
-
-class PropertyExample: StringSpec() {
-  init {
-
-    "String size" {
-      forAll(2300) { a: String, b: String ->
-        (a + b).length == a.length + b.length
-      }
-    }
-
-  }
-}
-```
-
-There are generators for all the common types - String, Ints, Sets, etc. If you need to generate custom types
-then you can simply specify the generator manually (and write your own). For example here is the same test again but
-with the generators specified.
-
-```kotlin
-import io.kotlintest.properties.*
-import io.kotlintest.specs.StringSpec
-
-class PropertyExample: StringSpec() {
-  init {
-
-    "String size" {
-      forAll(Gen.string(), Gen.string(), { a: String, b: String ->
-        (a + b).length == a.length + b.length
-      })
-    }
-
-  }
-}
-```
-
-To write your own generator for a type T, you just implement the interface `Gen<T>`. For example you could write
-a `Gen` that supports a custom class called `Person`:
-
-```kotlin
-data class Person(val name: String, val age: Int)
-class PersonGenerator : Gen<Person> {
-    override fun always() = emptyList<Person>()
-    override fun random() = generateSequence {
-        Person(Gen.string().random().first(), Gen.int().random().first())
-    }
-}
-
-```
-
-### Table-driven Testing <a name="table"></a>
-
-To test your code with different parameter combinations, you can use tables as input for your test 
-cases. 
-
-Your test class should import `io.kotlintest.properties.*` for table testing support. Create a table
-with the `table` function and pass a header and one or more row objects. You create the headers with
-the `headers` function, and a row with the `row` function. A row can have up to 22 entries. Headers
-and and rows must all have the same number of entries.
-
-To use the table, you invoke `forAll(table)` inside a test plan and pass a closure with the actual test code.
-The entries of the rows are passed as parameters to the closure.
-
-Table testing can be used with any spec. Here is an example using `StringSpec`.
-
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.properties.*
-import io.kotlintest.specs.StringSpec
-
-class StringSpecExample : StringSpec() {
-  init {
-    "should add" {
-      val myTable = table(
-          headers("a", "b", "result"),
-          row(1, 2, 3),
-          row(1, 1, 2)
-      )
-      forAll(myTable) { a, b, result ->
-        a + b shouldBe result
-      }
-    }
-  }
-}
-```
-
-Matchers <a name="matchers"></a>
+Matchers and Assertions
 --------
 
-KotlinTest has many built in matchers, along a similar line to the popular [hamcrest](http://hamcrest.org/) project. 
-The simplest assertion is that a value should be equal to something, eg: `x shouldBe y`. 
-This will also work for null values, eg `x shouldBe null`. 
+Matchers are used to assert a variable or function should have a particular value.
+KotlinTest has over 100 built in matchers. Matchers can be used in two styles:
 
-To negate a matcher, use _shouldNot_ eg `x shouldNotBe lt(4)`
+* Extension functions like `a.shouldBe(b)` or `a.shouldStartWith("foo")`
+* Infix functions like `a shouldBe b` or `a should startWith("foo")`
 
-See the [full list of matchers](matchers.md).
+Both styles are supported. The advantage of the extension function style is that the IDE can autocomplete for you,
+but some people may prefer the infix style as it is slightly cleaner.
 
-Custom Matchers
---------------
+Matchers can be negated by using `shouldNot` instead of `should` for the infix style. For example, `a shouldNot startWith("boo")`.
+For the extension function style, each function has an equivalent negated version, for example, `a.shouldNotStartWith("boo")`.
 
-It is easy to add your own matchers. Simply extend the Matcher<T> interface, where T is the type you wish to match again.
-For example to add a matcher that checks that a string contains the substring "foo", we can do the following:
+Matchers are available in the `kotlintest-assertions` module, which is usually added to the build
+when you add a KotlinTest test runner to your build (eg, `kotlintest-runner-junit5`). Of course, you could always add
+this to your build explicitly.
+
+The simplest matcher is that a value should be equal to something, eg: `x.shouldBe(y)`.
+This will also work for null values, eg `x.shouldBe(null)`. More specialized matchers test for things like string length, file size,
+ collection duplicates and so on.
+
+See the [full list of matchers](matchers.md) for more details.
+
+### Custom Matchers
+
+It is easy to add your own matchers. Simply extend the Matcher<T> interface, where T is the type you wish to match against.
+The Matcher interface specifies one method, `test`, which you must implement returning an instance of Result.
+The Result contains a boolean to indicate if the test passed or failed, and two messages.
+
+The first message should always be in the positive, ie, indicate what "should" happen, and the second message
+is used when the matcher is used with _not_.
+
+For example to create a matcher that checks that a string contains the substring "foo", we can do the following:
 
 ```kotlin
 fun containFoo() = object : Matcher<String> {
   override fun test(value: String) = Result(value.contains("foo"), "String $value should include foo", "String $value should not include foo")
 }
 ```
-
-The Matcher interface specifies one method, `test`, which you must implement returning an instance of Result. 
-The Result contains a boolean to indicate if the test passed or failed, and two messages. 
-The first message should always be in the positive, ie, indicate what "should" happen, and the second message
-is used when the matcher is used with _not_.
-
 This matcher could then be used as follows:
 
 ```kotlin
@@ -393,7 +155,24 @@ This matcher could then be used as follows:
 "hello bar" shouldNot containFoo()
 ```
 
-Exceptions <a name="exceptions"></a>
+And we should then create an extension function version, like this:
+
+```kotlin
+fun String.shouldContainFoo() = this should containFoo()
+fun String.shouldNotContainFoo() = this shouldNot containFoo()
+```
+
+
+
+
+
+
+
+
+
+
+
+Exceptions
 ----------
 
 To assert that a given block of code throws an exception, one can use the `shouldThrow` function. Eg,
@@ -416,147 +195,144 @@ exception.message should start with "Something went wrong"
 If you want to test that _exactly_ a type of exception is thrown, then use `shouldThrowExactly<E>`.
 If you want to test that _any_ exception is thrown, then use `shouldThrowAny`.
 
-Interceptors <a name="interceptors"></a>
-------------
 
-If you need to execute some logic before and/or after each test case, then you can use an interceptor. This is for example useful to cleanup a database after the test have run. 
 
-In the `ProjectConfig` (see below) you can override `beforeAll` and `afterAll` or add extentions with such methods to the ProjectConfig. Logic in theses methods will be executed before and/or after the first/last test of the project.
 
-In a spec class you can intercept the spec execution by overriding the `interceptors` property and providing a list of interceptors or by overriding `interceptSpec`.
 
-A single test case can be intercepted by overriding `interceptTestCase` or by providing a list of interceptors in the `defaultTestCaseConfig` or in the `config` of a test case.
 
-Interceptors replace `beforeEach`, `afterEach`, `beforeAll`, and `afterAll` functions from KotlinTest 1.x.
 
-### Interceptor Execution Order
 
-There are several points where you can hook in the test execution. 
 
-* ProjectConfig.extensions beforeAll
-  * ProjectConfig.beforeAll
-    * Spec.interceptors
-      * Spec.interceptSpec
-        * test case
-      * Spec.interceptSpec (interceptor from above continued)
-    * Spec.interceptors (interceptors from above continued)
-  * ProjectConfig.afterAll
-* ProjectConfig.extensions afterAll
 
-The general philoshopy here, is that the closer an interceptor is to a test case, the closer it is to the test case in the execution order.
 
-The execution order within an interceptor collection (`ProjectConfig.extentions`, `Spec.interceptors`) is from left to right.
 
-### Intercepting a Test Case
 
-Override `interceptTestCase` in a spec class to provide logic that should be called before and after each test case. 
 
-You could for example create a stopwatch by overriding `interceptTestCase`:
+Inspectors
+----------
+
+Inspectors allow us to test elements in a collection. They are extension functions for collections and arrays that test
+that all, none or some of the elements pass the given assertions. For example, to test that all elements in a collection
+contain an undercore and start with "aa" we could do:
 
 ```kotlin
-override fun interceptTestCase(context: TestCaseContext, test: () -> Unit) {
-  // before
-  val started = System.currentTimeMillis()
-
-  test() // don't forget to call test()!
-
-  // after
-  val finished = System.currentTimeMillis()
-  val time = finished - started
-  println("time [ms]: $time")
-} 
-```
-**Attention: Don't forget to call `test()` in your interceptor! Otherwise the test case wouldn't be called.**
-
-As you can see, you can keep some state, since an interceptor is really just a function and all variables are kept in this scope for the duration of the execution.
-
-You can even use interceptors to catch exceptions:
-
-```kotlin
-override fun interceptTestCase(context: TestCaseContext, test: () -> Unit) {
-  try {
-    test()
-  } 
-  catch (exception: SomeException) {
-    // ok
+class StringSpecExample : StringSpec({
+  "your test case" {
+    val xs = listOf("aa_1", "aa_2", "aa_3")
+    xs.forAll {
+      it.shouldContain("_")
+      it.shouldStartWith("aa")
+    }
   }
-  catch (exception: Exception) {
-    throw exception
-  }
-} 
+})
 ```
 
-If you define a separate interceptor function, you add it to the `defaultTestCaseConfig` or to the `config` of a test case:
+Similarly, if we wanted to asset that *no* elements in a collection passed the assertions, we can do:
 
 ```kotlin
-  val interceptorA: (TestCaseContext, () -> Unit) -> Unit = { context, testCase ->
-    println("A before")
-    testCase()
-    println("A after")
+xs.forNone {
+  it.shouldContain("x")
+  it.shouldStartWith("bb")
+}
+```
+
+The full list of inspectors are:
+
+* `forAll` which asserts every element passes the assertions
+* `forNone` which asserts no element passes
+* `forOne` which asserts only a single element passed
+* `forAtMostOne` which asserts that either 0 or 1 elements pass
+* `forAtLeastOne` which asserts that 1 or more elements passed
+* `forAtLeast(k)` which is a generalization that k or more elements passed
+* `forAtMost(k)` which is a generalization that k or fewer elements passed
+* `forAny` which is an alias for `forAtLeastOne`
+* `forSome` which asserts that between 1 and n-1 elements passed. Ie, if NONE pass or ALL pass then we consider that a failure.
+* `forExactly(k)` which is a generalization that exactly k elements passed. This is the basis for the implementation of the other methods
+
+
+
+Listeners
+---------
+
+It is a common requirement to run setup or teardown code before and after a test, or before and after all tests in a Spec class. Or sometimes
+ before and after the entire project. For this KotlinTest provides the `TestListener` interface. Instances of this interface can be registered
+ with a `Spec` class or project wide by using [ProjectConfig](#project-config).
+
+ This interface contains several functions,
+ such as `beforeTest`, `afterTest`, `beforeSpec` and so on, which are used to hook into the lifecycle of the test engine.
+
+Let's say we want to log the time taken for each test case. We can do this by using the `beforeTest` and `afterTest` functions
+ as follows:
+
+```kotlin
+object TimerListener : TestListener {
+
+  var started = 0L
+
+  override fun beforeTest(description: Description): Unit {
+    started = System.currentTimeMillis()
   }
 
-  val interceptorB: (TestCaseContext, () -> Unit) -> Unit = { context, testCase ->
-    println("B before")
-    testCase()
-    println("B after")
-  }
-
-class MySpec : StringSpec {
-
-  override val defaultTestCaseConfig = TestCaseConfig(interceptors = listOf(interceptorA, interceptorB))
-
-  init {
-    "should do something" {
-      ...
-    }.config(interceptors = listOf(interceptorA)) // overrides the interceptors from above
+  override fun afterTest(description: Description, result: TestResult): Unit {
+    println("Duration of $description = " + System.currentTimeMillis() - started)
   }
 }
 ```
 
-### Intercepting a Spec
-
-To run logic before and after a spec, you can override `interceptSpec`. The principle is the same as above:
+Then we can register this with a particular Spec, like so:
 
 ```kotlin
-protected fun interceptSpec(context: Spec, spec: () -> Unit) {
-  println("before spec")
-  spec() // don't forget to call spec()!
-  println("after spec")
+class MyTestClass : WordSpec() {
+
+  override fun listeners(): List<TestListener> = listOf(TimerListener)
+
+  // tests here
+
 }
 ```
 
-### Reusable Interceptors
+These functions will now be invoked for every test case inside the `MyTestClass` test class. Maybe you want
+ this listener to run for every test in the entire project. To do that, you would register the listener with
+ the project config singleton. For more information on this see [ProjectConfig](#project-config).
 
-Interceptors are just functions and can be reused between specs or even between projects. Just pass interceptors to the `config` on test case or spec level.
+The full list of the functions in the `TestListener` interface is as follows:
 
-```kotlin
-"should do it correctly" {
-  ...
-}.config(interceptors = listOf(myTestCaseInterceptor))
-```
+|Function|Purpose|
+|--------|-------|
+|beforeTest|This function will be invoked each time a new Test Case is executed.|
+|afterTest|Is invoked when a Test Case has finished. This includes when a test case is ignored (skipped), passes (is successful), or fails (errors).|
+|beforeSpec|Is invoked each time a Spec is started, before any `beforeTest` functions are invoked. |
+|afterSpec|Is invoked each time a Spec completes, after all `afterTest` functions are invoked. |
+|beforeProject|Is invoked as soon as the Test Engine is started.|
+|afterProject|Is invoked as soon as the Test Engine has finished.|
+|afterDiscovery|Is invoked after all the Spec classes have been discovered, but before any `beforeSpec` functions are called, and before any specs are instantiated by the Test Engine. |
 
-An interceptor would look like this:
 
-```kotlin
-val myTestCaseInterceptor: (TestCaseContext, () -> Unit) -> Unit = { context, testCase ->
-  println("before")
-  testCase() // Don't forget to call testCase()!
-  println("after")
-}
-```
+Project Config
+--------------
+
+KotlinTest is flexible and has many ways to configure tests.
+ Project-wide configuration is used by creating a special singleton object
+ which is loaded at runtime by KotlinTest.
+
+To do this, create an object that is derived from `AbstractProjectConfig`, name this object `ProjectConfig`
+and place it in a package called `io.kotlintest.provided`. KotlinTest will detect it's presence and use any configuration
+defined there when executing tests.
+
+Some of the configuration available in `ProjectConfig` includes parallelism of tests, executing code before and after
+ all tests, and re-usable listeners or extensions.
 
 ###  Executing Code Before and After a Whole Project
 
-To run some logic before the very first test case or after the very last test case of you your project you can define a ProjectConfig singleton object derived from `ProjectConfig` somewhere in your test folder (preferably in the top-level test folder, but it will be found anywhere on the class path).
-
-Override `beforeAll` and/or `afterAll`, to provide logic to be run before or after all tests of the project.
+To execute some logic before the very first test case and/or after the very last test case of your project, you can
+ override `beforeAll` and `afterAll` in the `ProjectConfig` singleton.
 
 Example:
 
 ```kotlin
-object DemoConfig : ProjectConfig() {
+package io.kotlintest.provided
 
-  override val extensions = listOf(TestExtension)
+object ProjectConfig : AbstractProjectConfig() {
 
   private var started: Long = 0
 
@@ -573,52 +349,248 @@ object DemoConfig : ProjectConfig() {
 
 ### Project Extensions
 
-To provide resuable beforeAll and afterAll callbacks you can implement the interface `ProjectExtension`:
+Many types of reusable extensions can be registered in the `ProjectConfig`. Where appropriate these will be executed for all
+ test cases and specs. Test level extensions will be covered in the next section.
+
+For example, to extract logic for beforeAll and afterAll into a seperate class you can implement the interface `ProjectExtension`.
 
 ```kotlin
-interface ProjectExtension {
-  fun beforeAll() {}
-  fun afterAll() {}
-}
-```
+class TimerExtension: ProjectExtension {
 
-Extensions are registered with the project config:
+  private var started: Long = 0
 
-```kotlin
-object DemoConfig : ProjectConfig() {
-  override val extensions = listOf(MyProjectExtension)
-}
-```
-
-The `beforeAll` methods of the extensions are executed in the order of extensions (from left to right). The `afterAll` methods are executed in reversed order (from right to left). If you had two extensions `listOf(A, B)` the order of execution would be:
-
-* `A.beforeAll`
-  * `B.beforeAll`
-    * test execution
-  * `B.afterAll`
-* `A.afterAll`.
-
-A `ProjectExtension` implementation would look like this:
-
-```kotlin
-object TestExtension : ProjectExtension {
   override fun beforeAll() {
-    println("before all extension")
+    started = System.currentTimeMillis()
   }
 
   override fun afterAll() {
-    println("after all extension")
+    val time = System.currentTimeMillis() - started
+    println("overall time [ms]: " + time)
   }
 }
 ```
+
+This extension can then be registered with the project config.
+
+```kotlin
+object ProjectConfig : AbstractProjectConfig() {
+  override val extensions = listOf(TimerExtension)
+}
+```
+
+### Parallelism
+
+KotlinTest supports running specs in parallel to take advantage of modern cpus with several cores. To do this, override
+ the `parallelism` function inside the project config.
+
+```kotlin
+object ProjectConfig : AbstractProjectConfig() {
+   override fun parallelism(): Int = 2
+}
+```
+
+By default the value is 1, which will run each spec serially.
+
+Note: Test cases inside each spec will always run sequentially (either in definition order, or in a random order, see documentation on test ordering).
+
+### Discovery Extension
+
+_Advanced Feature_
+
+Another type of extension that can be used inside `ProjectConfig` is the `DiscoveryExtension`. This extension is designed
+ to allow customisation of the way spec classes are discovered and instantiated. There are two functions of interest that
+ can be overridden.
+
+The first is `afterScan` which accepts a list of Spec classes that were discovered by KotlinTest during the _discovery_ phase
+ of the test engine. This function then returns a list of the classes that should actually be instantiated and executed. By
+ overriding this function, you are able to filter which classes are used, or even add in extra classes not originally discovered.
+
+The second function is `instantiate` which accepts a `KClass<Spec>` and then attempts to create an instance of this Spec class in order
+ to then run the test cases defined in it. By default, Spec classes are assumed to have a zero-arg primary constructor.
+ If you wish to use non-zero arg primary constructors this function can be implemented with logic on how to instantiate a test class.
+
+An implementation can choose to create a new instance, or it can choose to return null if it wishes to pass control to the next
+extension (or if no more extensions, then back to the Test Engine itself).
+
+By overriding this function, extensions are able to customize the way classes are created, to support things like constructors
+with parameters, or classes that require special initialization logic. This type of extension is how the Spring Constructor Injection
+add-on works for example.
+
+
+
+
+
+
+
+Property-based Testing <a name="property-based"></a>
+----------------------
+
+### Property Testing
+
+To automatically test your code with many combinations of values, you can allow KotlinTest to do the boilerplate
+by using property testing with `generators`. You invoke `assertAll` or `assertNone` and pass in a lambda, where the lambda
+parameters are populated automatically with many different values. The lambda must specify explicitly the parameter
+types as KotlinTest will use those to determine what types of values to pass in.
+
+For example, here is a property test that checks that for any two Strings, the length of `a + b`
+is the same as the length of `a` plus the length of `b`. In this example KotlinTest would
+execute the test 1000 times for random String combinations.
+
+```kotlin
+class PropertyExample: StringSpec() {
+  init {
+
+    "String size" {
+      assertAll({ a: String, b: String ->
+        (a + b).length shouldBe a.length + b.length
+      })
+    }
+
+  }
+}
+```
+
+You can also specify the number of times a test is going to be run. Here is the same test but this time it will run 2300 times.
+
+```kotlin
+class PropertyExample: StringSpec() {
+  init {
+
+    "String size" {
+      forAll(2300) { a: String, b: String ->
+        (a + b).length == a.length + b.length
+      }
+    }
+
+  }
+}
+```
+
+There are generators defined for all the common base types - String, Ints, UUIDs, etc. If you need to generate custom types
+then you can simply specify the generator manually (or write your own). For example here is the same test again but
+with the generators explicitly specified.
+
+```kotlin
+class PropertyExample: StringSpec() {
+  init {
+
+    "String size" {
+      forAll(Gen.string(), Gen.string(), { a: String, b: String ->
+        (a + b).length == a.length + b.length
+      })
+    }
+
+  }
+}
+```
+
+
+### Custom Generators
+
+To write your own generator for a type T, you just implement the interface `Gen<T>`.
+
+```kotlin
+interface Gen<T> {
+  fun constants(): Iterable<T>
+  fun random(): Sequence<T>
+}
+```
+
+The first function, `constants` returns values that should _always_ be included
+ in the test inputs. This is typically used for common edge case values. For example, the `Int` generator implements
+ `constants` to return 0, Int.MIN_VALUE and Int.MAX_VALUE as these are values that are often overlooked.
+
+The second function is `random` which returns a lazy list of random values, which is the bread and butter of a generator.
+
+For example you could write a `Gen` that supports a custom class called `Person`.
+ In this case there are no real edge case values for a `Person` instance so we can leave `constants` as an empty list.
+
+```kotlin
+data class Person(val name: String, val age: Int)
+class PersonGenerator : Gen<Person> {
+    override fun constants() = emptyList<Person>()
+    override fun random() = generateSequence {
+        Person(Gen.string().random().first(), Gen.int().random().first())
+    }
+}
+```
+
+
+
+
+
+
+
+
+
+Table-driven Testing
+--------------------
+
+To test your code with different parameter combinations, you can use a table of values as input for your test
+cases. This is sometimes called _data driven testing_ and other times called _table driven testing_.
+
+Invoke the `forAll` or `forNone` function, passing in one or more `row` objects, where each row object contains
+the values to be used be a single invocation of the test. After the `forAll` or `forNone` function, setup your
+actual test function to accept the values of each row as parameters.
+
+The row object accepts any set of types, and the type checker will ensure your types are consistent with the parameter
+types in the test function.
+
+```kotlin
+"square roots" {
+  forall(
+      row(2, 4),
+      row(3, 9),
+      row(4, 16),
+      row(5, 25)
+  ) { root, square ->
+    root * root shouldBe square
+  }
+}
+```
+
+In the above example, the `root` and `square` parameters are automatically inferrred to be integers.
+
+If there is an error for any particular input row, then the test will fail and KotlinTest will automatically
+match up each input to the corresponding parameter names. For example, if we change the previous example to include the row `row(5,55)`
+then the test will be marked as a failure with the following erorr message.
+
+```
+Test failed for (root, 5), (square, 55) with error expected: 55 but was: 25
+```
+
+Table testing can be used within any spec. Here is an example using `StringSpec`.
+
+```kotlin
+class StringSpecExample : StringSpec({
+  "string concat" {
+    forall(
+      row("a", "b", "c", "abc"),
+      row("hel", "lo wo", "rld", "hello world"),
+      row("", "z", "", "z")
+    ) { a, b, c, d ->
+      a + b + c shouldBe d
+    }
+  }
+})
+```
+
+
+
+
+
+
+
+
+
+
 
 One Instance Per Test
 ---------------------
 
-Certain specs (those which do not offer a nested context, eg FunSpec) allow you to instruct the test runner to create
-a new instance of the Spec for every test case.
+All specs allow you to instruct the test engine to create a new instance of the Spec for every test case.
  
-To do this simply override the `isInstancePerTest()` function returning true,eg:
+To do this simply override the `isInstancePerTest()` function returning true:
 
 ```kotlin
 class MyTests : FunSpec() {
@@ -629,10 +601,25 @@ class MyTests : FunSpec() {
 }
 ```
 
-Test Case Config <a name="config"></a>
+This style of testing allows variables to be reset for each test. By default `isInstancePerTest()` returns false.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Test Case Config
 ------------------------------
 
-Each test can be configured with various parameters. After the test block, invoke the config method passing in the parameters you wish to set. The available parameters are:
+Each test can be configured with various parameters. After the test name, invoke the config function
+ passing in the parameters you wish to set. The available parameters are:
 
 * `invocations` - the number of times to run this test. Useful if you have a non-deterministic test and you want to run that particular test a set number of times. Defaults to 1.
 * `threads` - Allows the invocation of this test to be parallelized by setting the number of threads to use in a thread pool executor for this test. If invocations is 1 (the default) then this parameter will have no effect. Similarly, if you set invocations to a value less than or equal to the number threads, then each invocation will have its own thread.
@@ -643,43 +630,35 @@ Each test can be configured with various parameters. After the test block, invok
 Examples of setting config:
 
 ```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.ShouldSpec
-
 class MyTests : ShouldSpec() {
   init {
-    should("return the length of the string") {
+    should("return the length of the string").config(invocations = 10, threads = 2) {
       "sammy".length shouldBe 5
       "".length shouldBe 0
-    }.config(invocations = 10, threads = 2)
-  }
-}
-```
-
-```kotlin
-import io.kotlintest.matchers.shouldBe
-import io.kotlintest.specs.WordSpec
-
-class MyTests : WordSpec() {
-  init {
-    "String.length" should {
-      "return the length of the string" {
-        "sammy".length shouldBe 5
-        "".length shouldBe 0
-      }.config(timeout = 2.seconds)
     }
   }
 }
 ```
 
 ```kotlin
-import io.kotlintest.specs.FunSpec
+class MyTests : WordSpec() {
+  init {
+    "String.length" should {
+      "return the length of the string".config(timeout = 2.seconds) {
+        "sammy".length shouldBe 5
+        "".length shouldBe 0
+      }
+    }
+  }
+}
+```
 
+```kotlin
 class FunSpecTest : FunSpec() {
   init {
-    test("FunSpec should support config syntax") {
+    test("FunSpec should support config syntax").config(tags = setOf(Database, Linux)) {
       // ...
-    }.config(tags = setOf(Database, Linux))
+    }
   }
 }
 ```
@@ -687,8 +666,6 @@ class FunSpecTest : FunSpec() {
 You can also specify a default TestCaseConfig for all test cases of a Spec:
 
 ```kotlin
-import io.kotlintest.specs.StringSpec
-
 class MySpec : StringSpec() {
 
   override val defaultTestCaseConfig = TestCaseConfig(invocations = 3)
@@ -700,26 +677,95 @@ class MySpec : StringSpec() {
 ```
 
 
+
+
+
+
+
+
+
+
+
+
 Disabling Test Cases and Running Test Cases Conditionally
 ---------------------------------------------------------
 
-You can disable a test case simply by setting the config parameter `enabled` to `false`. If you're looking for something like JUnit's `@Ignore`, this is for you.
+Sometimes we want to temporarily disable some tests in of a test suite.
+Perhaps we’re experimenting with some API changes and don’t want to have to keep changing all the tests until we’re happy with the new API.
+Or perhaps we’re debugging and want to reduce the noise in the output.
+
+There are several ways to disable tests.
+
+### By Config
+
+You can disable a test case simply by setting the config parameter `enabled` to `false`.
+If you're looking for something like JUnit's `@Ignore`, this is for you.
 
 ```kotlin
-"should do something" {
+"should do something".config(enabled = false) {
   ...
-}.config(enabled = false)
+}
 ```
 
-You can use the same mechanism to run tests only under certain conditions. For example you could run certain tests only on Linux systems using [SystemUtils](http://commons.apache.org/proper/commons-lang/javadocs/api-release/org/apache/commons/lang3/SystemUtils.html#IS_OS_WINDOWS).IS_OS_LINUX from [Apache Commons Lang](https://commons.apache.org/proper/commons-lang/).
+You can use the same mechanism to run tests only under certain conditions.
+ For example you could run certain tests only on Linux systems using
+ [SystemUtils](http://commons.apache.org/proper/commons-lang/javadocs/api-release/org/apache/commons/lang3/SystemUtils.html#IS_OS_WINDOWS).IS_OS_LINUX from [Apache Commons Lang](https://commons.apache.org/proper/commons-lang/).
 
 ```kotlin
-"should do something" {
+"should do something".config(enabled = IS_OS_LINUX) {
   ...
-}.config(enabled = IS_OS_LINUX)
+}
 ```
 
 `isLinux` and `isPostgreSQL` in the example are just expressions (values, variables, properties, function calls) that evaluate to `true` or `false`.
+
+
+### Focus
+
+KotlinTest supports isolating a single top level test by preceding the test name with `f:`.
+Then only that test (and any subtests defined inside that scope) will be executed, with the rest being skipped.
+
+For example, in the following snippet only the middle test will be executed.
+
+```kotlin
+class FocusExample : StringSpec({
+    "test 1" {
+     // this will be skipped
+    }
+
+    "f:test 2" {
+     // this will be executed
+    }
+
+    "test 3" {
+     // this will be skipped
+    }
+})
+```
+
+
+### Bang
+
+The opposite of focus is possible, which is to prefix a test with an exclamation mark `!` and then that test (and any subtests defined inside that scope) will be skipped.
+In the next example we’ve disabled the first test by adding the “!” prefix.
+
+```kotlin
+class BangExample : StringSpec({
+
+  "!test 1" {
+    // this will be ignored
+  }
+
+  "test 2" {
+    // this will run
+  }
+
+  "test 3" {
+    // this will run too
+  }
+})
+```
+
 
 
 Grouping Tests with Tags
@@ -742,17 +788,17 @@ import io.kotlintest.specs.StringSpec
 
 class MyTest : StringSpec() {
   init {
-    "should run on Windows" {
+    "should run on Windows".config(tags = setOf(Windows)) {
       // ...
-    }.config(tags = setOf(Windows))
+    }
 
-    "should run on Linux" {
+    "should run on Linux".config(tags = setOf(Linux)) {
       // ...
-    }.config(tags = setOf(Linux))
+    }
 
-    "should run on Windows and Linux" {
+    "should run on Windows and Linux".config(tags = setOf(Windows, Linux)) {
       // ...
-    }.config(tags = setOf(Windows, Linux))
+    }
   }
 }
 ```
@@ -779,15 +825,21 @@ If you use `kotlintest.tags.include` and `kotlintest.tags.exclude` in combinatio
 `kotlintest.tags.include` but not tagged with a tag from `kotlintest.tags.exclude` are run. If you use only `kotlintest.tags.exclude`
 all tests but the tests tagged with the given tags are are run.
 
-Closing resource automatically <a name="autoclose"></a>
+
+
+
+
+
+
+
+
+
+Closing resource automatically
 --------------------------------------------
 
 You can let KotlinTest close resources automatically after all tests have been run:
 
 ```kotlin
-import io.kotlintest.specs.StringSpec
-import java.io.StringReader
-
 class StringSpecExample : StringSpec() {
 
   val reader = autoClose(StringReader("xyz"))
@@ -803,75 +855,32 @@ class StringSpecExample : StringSpec() {
 Resources that should be closed this way must implement [`java.io.Closeable`](http://docs.oracle.com/javase/6/docs/api/java/io/Closeable.html). Closing is performed in  
 reversed order of declaration after the return of the last spec interceptor.
 
-Inspectors <a name="inspectors"></a>
-----------
 
-Inspectors allow us to test elements in a collection. For example, if we had a collection from a method and we wanted to test that every element in the collection passed some assertions, we can do:
 
-```kotlin
-import io.kotlintest.matchers.*
-import io.kotlintest.specs.StringSpec
 
-class StringSpecExample : StringSpec() {
 
-  init {
-    "your test case" {
-      val xs = listOf("aasdf", "basdf", "casdf")
-          forAll(xs) { x ->
-            x should include("as")
-            x should startWith("q")
-          }
-    }
-  }
-}
-```
 
-Similarly, if we wanted to asset that NO elements in a collection passed some assertions, we can do:
 
-```kotlin
-val xs = // some collection
-forNone(xs) { x ->
-  x should include("qwerty")
-  x should startWith("q")
-}
-```
 
-The full list of inspectors are:
-
-* `forAll` which asserts every element passes the assertions
-* `forNone` which asserts no element passes
-* `forOne` which asserts only a single element passed
-* `forAtMostOne` which asserts that either 0 or 1 elements pass
-* `forAtLeastOne` which asserts that 1 or more elements passed
-* `forAtLeast(k)` which is a generalization that k or more elements passed
-* `forAtMost(k)` which is a generalization that k or fewer elements passed
-* `forAny` which is an alias for `forAtLeastOne`
-* `forSome` which asserts that between 1 and n-1 elements passed. Ie, if NONE pass or ALL pass then we consider that a failure.
-* `forExactly(k)` which is a generalization that exactly k elements passed. This is the basis for the implementation of the other methods
-
-When Ready <a name="whenReady"></a>
-----------
+Futures
+-------
 
 When testing future based code, it's useful to have a test run as soon as a future has completed, rather than blocking and waiting.
 KotlinTest allows you to do this, by using the `whenReady(future, fn)` construct.
 
 ```kotlin
-import io.kotlintest.specs.ShouldSpec
+class MyTests : StringSpec({
 
-class MyTests : ShouldSpec() {
-  init {
-    should("test a future") {
-      val f: CompletableFuture<String> = someFuture()
-      whenReady(f) { 
-        it shouldBe "wibble"
-      }
+    "test a future" {
+        val f: CompletableFuture<String> = someFuture()
+        whenReady(f) {
+            it shouldBe "wibble"
+        }
     }
-  }
-}
+})
 ```
 
-Eventually <a name="eventually"></a>
-----------
+### Eventually <a name="eventually"></a>
 
 When testing non-deterministic code, it's handy to be able to say "I expect these assertions to pass in a certain time". 
 Sometimes you can do a Thread.sleep but this is bad as you have to set a timeout that's high enough so that it won't expire prematurely. 
@@ -880,8 +889,6 @@ KotlinTest provides the `Eventually` mixin, which gives you the `eventually` fun
 or the timeout is reached. This is perfect for nondeterministic code. For example:
 
 ```kotlin
-import io.kotlintest.specs.ShouldSpec
-
 class MyTests : ShouldSpec() {
   init {
     should("do something") {
@@ -893,18 +900,55 @@ class MyTests : ShouldSpec() {
 }
 ```
 
-Spring
----------
 
-KotlinTest offers a Spring extension to allow you to test code that uses uses Spring to inject dependencies.
-To enable this, add the `kotlintest-extensions-spring` module to your test compile path. Then add the `SpringListener`
-to any spec that needs to test spring beans, or you can add it project wide by using `ProjectConfig`.
 
-In order to let Spring know which configuration class to use, you must annotation your Spec classes with `@ContextConfiguration`.
+
+Extensions
+----------
+
+KotlinTest comes with several extension modules which are not part of the main build.
+
+### Arrow
+
+The arrow extension module provives assertions for the functional programming library [arrow-kt](https://arrow-kt.io/) for types such as `Option`, `Try`, and so on.
+ To use this library you need to add `kotlintest-assertions-arrow` to your build.
+
+Here is an example asserting that an `Option` variable is a `Some` with a value `"Foo"`.
+
+```kotlin
+val option: Option<String> = ...
+option shouldBe beSome("foo")
+```
+
+For the full list of arrow matchers [click here](arrow-matchers.md).
+
+Additionally, the module provides inspectors that work specifically for the `NonEmptyList` type.
+For example, we can test that a set of assertions hold only for a single element in a Nel by using the `forOne` inspector.
+
+```kotlin
+val list = NonEmptyList(2, 4, 6, 7,8)
+list.forOne {
+  it.shouldBeOdd()
+}
+```
+
+Other inspectors include `forNone`, `forAll`, `forExactly(n)`, `forSome` and so on. See the section on [inspectors](https://github.com/kotlintest/kotlintest/blob/master/doc/reference.md#inspectors) for more details.
+
+### Spring
+
+KotlinTest offers a Spring extension that allows you to test code that wires dependencies using Spring.
+To use this extension add the `kotlintest-extensions-spring` module to your test compile path.
+
+In order to let Spring know which configuration class to use, you must annotate your Spec classes with `@ContextConfiguration`.
 This should point to a class annotated with the Spring `@Configuration` annotation. Alternatively, you can use `@ActiveProfile` to
 point to a [specific application context file](https://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-profiles.html).
 
-At the moment, only field based injection is supported - you can't put the dependencies in the constructor. For example:
+There are two ways to enable spring wiring depending on if you want to use constructor injection, or field injection.
+
+#### Field Injection
+
+If you wish to use field injection, then the `SpringListener` must be registered with any
+ Spec that uses spring beans. For example:
 
 ```kotlin
 @ContextConfiguration(classes = [(TestConfiguration::class)])
@@ -924,3 +968,36 @@ class SpringExampleSpec : WordSpec() {
   }
 }
 ```
+
+You could add the `SpringListener` project wide by registering the listener in [ProjectConfig](#project-config).
+
+#### Constructor Injection
+
+For constructor injection, we use a different implementation called `SpringAutowireConstructorExtension` which
+ must be registered with [ProjectConfig](#project-config). This extension will intercept each call to create a Spec instance
+ and will autowire the beans declared in the primary constructor.
+
+First an example of the project config.
+
+```kotlin
+class ProjectConfig : AbstractProjectConfig() {
+  override fun extensions(): List<ProjectLevelExtension> = listOf(SpringAutowireConstructorExtension)
+}
+```
+
+And now an example of a test class which requires a service called `UserService` in its primary constructor. This service
+ class is just a regular spring bean which has been annotated with @Component.
+
+```kotlin
+@ContextConfiguration(classes = [(Components::class)])
+class SpringAutowiredConstructorTest(service: UserService) : WordSpec() {
+  init {
+    "SpringListener" should {
+      "have autowired the service" {
+        service.repository.findUser().name shouldBe "system_user"
+      }
+    }
+  }
+}
+```
+

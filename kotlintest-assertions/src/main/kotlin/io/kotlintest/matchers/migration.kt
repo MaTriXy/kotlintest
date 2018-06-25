@@ -4,15 +4,15 @@ import io.kotlintest.Matcher
 import io.kotlintest.should
 import io.kotlintest.shouldBe
 import io.kotlintest.shouldHave
-import io.kotlintest.shouldNot
 import io.kotlintest.shouldNotBe
+import io.kotlintest.shouldNot
 import io.kotlintest.shouldThrow
 
-@Deprecated("use the equivalent function io.kotlintest.shouldBe", ReplaceWith("shouldBe(matcher)", "io.kotlintest.shouldBe"))
-infix fun <T> T.shouldBe(matcher: Matcher<T>) = shouldBe(matcher)
+@Deprecated("use the equivalent function io.kotlintest.shouldBe", ReplaceWith("shouldBe(any)", "io.kotlintest.shouldBe"))
+infix fun <T, U : T> T.shouldBe(any: U?) = shouldBe(any)
 
-@Deprecated("use the equivalent function io.kotlintest.shouldNotBe", ReplaceWith("shouldNotBe(matcher)", "io.kotlintest.shouldNotBe"))
-infix fun <T> T.shouldNotBe(matcher: Matcher<T>) = shouldNotBe(matcher)
+@Deprecated("use the equivalent function io.kotlintest.shouldNotBe", ReplaceWith("shouldNotBe(any)", "io.kotlintest.shouldNotBe"))
+infix fun <T> T.shouldNotBe(any: Any?) = shouldNotBe(any)
 
 @Deprecated("use the equivalent function io.kotlintest.shouldNot", ReplaceWith("shouldNot(matcher)", "io.kotlintest.shouldNot"))
 infix fun <T> T.shouldNot(matcher: Matcher<T>) = shouldNot(matcher)

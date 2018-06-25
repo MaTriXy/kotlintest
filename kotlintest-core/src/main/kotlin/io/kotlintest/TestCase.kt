@@ -1,69 +1,49 @@
 package io.kotlintest
 
-import io.kotlintest.extensions.TestCaseExtension
-import java.time.Duration
-
 /**
- * Describes an actual testcase.
- * That is, a unit of code that will be tested.
+ * A [TestCase] describes an actual block of code that will be tested.
+ * It contains a reference back to the [Spec] instance in which it
+ * is being executed.
  *
- * A test case is always associated with a container,
- * called a [TestContainer]. Such a descriptor is used
- * to group together related test cases. This allows
- * hierarchical reporting and output using the rich
- * DSL of the [Spec] classes.
+ * It also captures a closure of the body of the test case.
+ * This is a function which is invoked with a [TestContext].
+ * The context is used so that the test function can, at runtime,
+ * register nested tests with the test engine. This allows
+ * nested tests to be executed lazily as required, rather
+ * than when the [Spec] instance is created.
+ *
+ * A test can be nested inside other tests if the [Spec] supports it.
+ *
+ * For example, in the FunSpec we only allow top level tests.
+ *
+ * test("this is a test") { }
+ *
+ * And in WordSpec we allow two levels of tests.
+ *
+ * "a string" should {
+ *   "return the length" {
+ *   }
+ * }
+ *
  */
 data class TestCase(
-    // the description contains the names of all parents, plus this one
+    // the description contains the names of all parents, plus the name of this test case
     val description: Description,
     // the spec that contains this testcase
     val spec: Spec,
-    // a closure of the test itself
+    // a closure of the test function
     val test: TestContext.() -> Unit,
     // the first line number of the test
     val line: Int,
+    val type: TestType,
     // config used when running the test, such as number of
     // invocations, number of threads, etc
-    var config: TestCaseConfig) : TestScope {
+    val config: TestCaseConfig) {
+  val name = description.name
+}
 
-  override fun name(): String = description.name
-  override fun description(): Description = description
-  override fun spec(): Spec = spec
-
-  fun config(
-      invocations: Int? = null,
-      enabled: Boolean? = null,
-      timeout: Duration? = null,
-      threads: Int? = null,
-      tags: Set<Tag>? = null,
-      extensions: List<TestCaseExtension>? = null) {
-    config =
-        TestCaseConfig(
-            enabled ?: config.enabled,
-            invocations ?: config.invocations,
-            timeout ?: config.timeout,
-            threads ?: config.threads,
-            tags ?: config.tags,
-            extensions ?: config.extensions)
-  }
-
-  fun isActive() = config.enabled && isActiveAccordingToTags()
-
-  fun isActiveAccordingToTags(): Boolean {
-    val testCaseTags = config.tags.map { it.toString() }
-    val includedTags = readTagsProperty("kotlintest.tags.include")
-    val excludedTags = readTagsProperty("kotlintest.tags.exclude")
-    val includedTagsEmpty = includedTags.isEmpty() || includedTags == listOf("")
-    return when {
-      excludedTags.intersect(testCaseTags).isNotEmpty() -> false
-      includedTagsEmpty -> true
-      includedTags.intersect(testCaseTags).isNotEmpty() -> true
-      else -> false
-    }
-  }
-
-  private fun readTagsProperty(name: String): List<String> =
-      (System.getProperty(name) ?: "").split(',').map { it.trim() }
+enum class TestType {
+  Container, Test
 }
 
 enum class TestStatus {
@@ -77,4 +57,22 @@ enum class TestStatus {
   Failure
 }
 
-data class TestResult(val status: TestStatus, val error: Throwable?, val metaData: List<Any> = emptyList())
+data class TestResult(val status: TestStatus,
+                      val error: Throwable?,
+                      val reason: String?,
+                      val metaData: Map<String, Any?> = emptyMap()) {
+  companion object {
+    val Success = TestResult(TestStatus.Success, null, null)
+    val Ignored = TestResult(TestStatus.Ignored, null, null)
+    fun failure(e: AssertionError) = TestResult(TestStatus.Failure, e, null)
+    fun error(t: Throwable) = TestResult(TestStatus.Error, t, null)
+    fun ignored(reason: String?) = TestResult(TestStatus.Ignored, null, reason)
+  }
+}
+
+fun lineNumber(): Int {
+  val stack = Throwable().stackTrace
+  return stack.dropWhile {
+    it.className.startsWith("io.kotlintest")
+  }[0].lineNumber
+}

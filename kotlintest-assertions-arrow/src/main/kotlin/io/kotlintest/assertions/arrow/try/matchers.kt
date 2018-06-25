@@ -1,10 +1,20 @@
 package io.kotlintest.assertions.arrow.`try`
 
-import arrow.data.Try
+import arrow.core.Success
+import arrow.core.Try
 import io.kotlintest.Matcher
 import io.kotlintest.Result
+import io.kotlintest.matchers.beInstanceOf2
+import io.kotlintest.should
+import io.kotlintest.shouldNot
 
-fun <A> success(a: A) = object : Matcher<Try<A>> {
+fun <T> Try<T>.shouldBeSuccess() = this should beSuccess<T>()
+fun <T> Try<T>.shouldNotBeSuccess() = this shouldNot beSuccess<T>()
+fun <T> beSuccess() = beInstanceOf2<Try<T>, Success<T>>()
+
+fun <T> Try<T>.shouldBeSuccess(t: T) = this should beSuccess(t)
+fun <T> Try<T>.shouldNotBeSuccess(t: T) = this shouldNot beSuccess(t)
+fun <A> beSuccess(a: A) = object : Matcher<Try<A>> {
   override fun test(value: Try<A>): Result {
     return when (value) {
       is Try.Failure<*> -> Result(false, "Try should be a Success($a) but was Failure(${value.exception.message})", "")
@@ -18,7 +28,9 @@ fun <A> success(a: A) = object : Matcher<Try<A>> {
   }
 }
 
-fun failure() = object : Matcher<Try<Any>> {
+fun Try<Any>.shouldBeFailure() = this should beFailure()
+fun Try<Any>.shouldNotBeFailure() = this shouldNot beFailure()
+fun beFailure() = object : Matcher<Try<Any>> {
   override fun test(value: Try<Any>): Result {
     return when (value) {
       is Try.Success<*> -> Result(false, "Try should be a Failure but was Success(${value.value})", "")

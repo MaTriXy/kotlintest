@@ -1,21 +1,237 @@
 Changelog
 =========
 
-This project follows [semantic versioning](http://semver.org/).
+#### 3.1.6
 
-Version 3.1.x - In Progress
+* Specs now support co-routines #332
+* Extension function version of inspectors.
+* Inspectors for arrow NonEmptyLists
+* New style of data driven tests with parameter name detection
+* Extension function style of assert all for property testing
+* Updated string matchers to show better error when input is null or empty string
+* Allow nullable arguments to more matcher functions. #350
+* Added extension functions for table tests #349
+
+#### 3.1.5
+
+* Fix for bug in gradle which doesn't support parallel test events
+* Bring back Duration extension properties #343
+* Added fix for gradle 4.7 issues #336
+* shouldBe does not handle java long  #346
+* Fixing function return type in documentation for forAll() (#345)
+* Fixing typos in reference.md (#344)
+* Make the Table & Row data classes covariant (#342)
+* Fixing argument names in ReplaceWith of deprecated matchers (#341)
+
+#### 3.1.4
+
+* Fix eventually nanos conversion (#340)
+* Improve array shouldBe overloads (#339)
+
+#### 3.1.3
+
+* Added workaround for gradle 4.7/4.8 error #336
+* Fix URI path and URI parameter matchers (#338)
+
+#### 3.1.2
+
+* Added arrow NonEmptyList isUnique matchers
+* Added Float and List Shrinker
+* Added inspecting and extracting helper functions. (#334)
+* Allow tags to be added to specs for all test cases #333
+* Support randomized order of top level tests #328
+
+#### 3.1.1
+
+* Focus option for top level tests #329
+* Improve shrinkage #331
+* Updated readme for custom generators #313
+* Added generator for UUIDs
+* Fixed bug with auto-close not being called. Deprecated ProjectExtension in favour of TestListener.
+* Added a couple of edge case matchers to the arrow extension; added arrow matchers for lists.
+
+Version 3.1.0
 ----------
+
+* **Simplified Setup**
+
+In KotlinTest 3.1.x it is sufficent to enable JUnit in the test block of your gradle build
+ instead of using the gradle junit plugin. This step is the same as for any test framework
+ that uses the JUnit Platform.
+
+Assuming you have gradle 4.6 or above, then setup your test block like this:
+
+```groovy
+test {
+    useJUnitPlatform()
+}
+```
+
+You can additionally enable extra test logging:
+
+```groovy
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED", "STANDARD_OUT", "STANDARD_ERROR"
+    }
+}
+```
+
+* **Instance Per Test for all Specs**
+
+In the 3.0.x train, the ability to allow an instance per test was removed from some spec styles due to
+implementation difficulties. This has been addressed in 3.1.x and so all spec styles now allow instance
+per test as in the 2.0.x releases. Note: The default value is false, so tests will use a single shared
+instance of the spec for all tests unless the `isInstancePerTest()` function is overriden to return true.
+
+* **Breaking Change: Config Syntax**
+
+The syntax for config has now changed. Instead of a function call after the test has been defined, it is
+now specified after the name of the test.
+
+So, instead of:
+
+```kotlin
+"this is a test" {
+}.config(...)
+```
+
+You would now do:
+
+```kotlin
+"this is a test".config(...) {
+}
+```
+
+* **Matchers as extension functions**
+
+All matchers can now be used as extension functions. So instead of:
+
+```kotlin
+file should exist()
+
+or
+
+listOf(1, 2) should containNull()
+```
+
+You can do:
+
+```kotlin
+file.shouldExist()
+
+or
+
+listOf(1, 2).shouldContainNull()
+```
+
+Note: The infix style is **not** deprecated and will be supported in future releases, but the extension function
+is intended to be the preferred style moving forward as it allows discovery in the IDE.
 
 * **Dozens of new Matchers**
 
-* Numbers - Even / Odd / beInRange
+_even_ and _odd_
+
+Tests that an Int is even or odd:
+
+```kotlin
+4 should beEven()
+3 shouldNot beEven()
+
+3 should beOdd()
+4 shouldNot beOdd()
+```
+
+_beInRange_
+
+Asserts that an int or long is in the given range:
+
+```kotlin
+3 should beInRange(1..10)
+4 should beInRange(1..3)
+```
+
+_haveElementAt_
+
+Checks that a collection contains the given element at a specified index:
+
+```kotlin
+listOf("a", "b", "c") should haveElementAt(1, "b")
+listOf("a", "b", "c") shouldNot haveElementAt(1, "c")
+```
+
+Help out the type inferrer when using nulls:
+
+```kotlin
+listOf("a", "b", null) should haveElementAt<String?>(2, null)
+```
+
+_readable_, _writeable_, _executable_ and _hidden_
+
+Tests if a file is readable, writeable, or hidden:
+
+```kotlin
+file should beRadable()
+file should beWriteable()
+file should beExecutable()
+file should beHidden()
+```
+
+_absolute_ and _relative_
+
+Tests if a file's path is relative or absolute.
+
+```kotlin
+File("/usr/home/sam") should beAbsolute()
+File("spark/bin") should beRelative()
+```
+
+_startWithPath(path)_
+
+Tests if a file's path begins with the specified prefix:
+
+```kotlin
+File("/usr/home/sam") should startWithPath("/usr/home")
+File("/usr/home/sam") shouldNot startWithPath("/var")
+```
+
+_haveSameHashCodeAs(other)_
+
+Asserts that two objects have the same hash code.
+
+```kotlin
+obj1 should haveSameHashCodeAs(obj2)
+"hello" shouldNot haveSameHashCodeAs("world")
+```
+
+_haveSameLengthAs(other)_
+
+Asserts that two strings have the same length.
+
+```kotlin
+"hello" should haveSameLengthAs("world")
+"hello" shouldNot haveSameLengthAs("you")
+```
+
+_haveScheme, havePort, haveHost, haveParameter, havePath, haveFragment_
+
+Matchers for URIs:
+
+```kotlin
+val uri = URI.create("https://localhost:443/index.html?q=findme#results")
+uri should haveScheme("https")
+uri should haveHost("localhost")
+uri should havePort(443)
+uri should havePath("/index.html")
+uri should haveParameter("q")
+uri should haveFragment("results")
+```
+
 * Date matchers - before / after / haveSameYear / haveSameDay / haveSameMonth / within
-* URI matchers - haveScheme / havePort / haveHost / haveParameter / haveFragment
-* File matchers - startWithPath(prefix), hidden, readable, writable, executable, absolute, relative
-* General - haveSameHashCode
-* Collections - containNull, haveDuplicates, haveElementAt
-* Futures - beCompleted, beCancelled
-* String - haveLineCount, contain(regex), haveSameLengthAs(otherstring)
+* Collections - containNull, containDuplicates
+* Futures - completed, cancelled
+* String - haveLineCount, contain(regex)
 * Types - haveAnnotation(class)
 
 * **Arrow matcher module**
@@ -25,40 +241,50 @@ A new module has been added which includes matchers for [Arrow](http://arrow-kt.
 
 The included matchers are:
 
-_Options_ - Test that an `Option` has the given value. For example:
+_Option_ - Test that an `Option` has the given value or is a `None`. For example:
 
 ```kotlin
 val option = Option.pure("foo")
-option shouldBe some("foo")
+option should beSome("foo")
+
+val none = None
+none should beNone()
 ```
 
-_Eithers_- Test that an `Either` is either a `Right` or `Left`. For example:
+_Either_- Test that an `Either` is either a `Right` or `Left`. For example:
 
 ```kotlin
-Either.right("boo") shouldBe right("boo")
-Either.left("boo") shouldBe left("boo")
+Either.right("boo") should beRight("boo")
+Either.left("boo") should beLeft("boo")
 ```
 
 _NonEmptyList_- A collection (no pun intended) of matchers for Arrow's `NonEmptyList`.
 These mostly mirror the equivalent `Collection` matchers but for NELs. For example:
 
 ```kotlin
-NonEmptyList.of(1, 2, null) should containNull()
-NonEmptyList.of(1, 2, 3, 4) shouldBe sorted<Int>()
-NonEmptyList.of(1, 2, 3, 3) should haveDuplicates()
-NonEmptyList.of(1) shouldBe singleElement(1)
-NonEmptyList.of(1, 2, 3) should contain(2)
-NonEmptyList.of(1, 2, 3) should haveSize(3)
-NonEmptyList.of(1, 2, 3) should containNoNulls()
-NonEmptyList.of(null, null, null) should containOnlyNulls()
-NonEmptyList.of(1, 2, 3, 4, 5) should containAll(3, 2, 1)
+NonEmptyList.of(1, 2, null).shouldContainNull()
+NonEmptyList.of(1, 2, 3, 4).shouldBeSorted<Int>()
+NonEmptyList.of(1, 2, 3, 3).shouldHaveDuplicates()
+NonEmptyList.of(1).shouldBeSingleElement(1)
+NonEmptyList.of(1, 2, 3).shouldContain(2)
+NonEmptyList.of(1, 2, 3).shouldHaveSize(3)
+NonEmptyList.of(1, 2, 3).shouldContainNoNulls()
+NonEmptyList.of(null, null, null).shouldContainOnlyNulls()
+NonEmptyList.of(1, 2, 3, 4, 5).shouldContainAll(3, 2, 1)
 ```
 
-_Trys_ - Test that a `Try` is either `Success` or `Failure`.
+_Try_ - Test that a `Try` is either `Success` or `Failure`.
 
 ```kotlin
-Try.Success("foo") shouldBe success("foo")
-Try.Failure<Nothing>(RuntimeException()) shouldBe failure()
+Try.Success("foo") should beSuccess("foo")
+Try.Failure<Nothing>(RuntimeException()) should beFailure()
+```
+
+_Validation_ - Asserts that a `Validation` is either `Valid` or an `Invalid`
+
+```kotlin
+Valid("foo") should beValid()
+Invalid(RuntimeException()) should beInvalid()
 ```
 
 * **Generator Bind**
@@ -124,12 +350,44 @@ This will output something like:
 
 * **Property Testing: Shrinking**
 
-* **Spec Instantiation Extensions**
+* **Tag Extensions**
+
+A new type of extension has been added called `TagExtension`. Implementations can override the `tags()` function
+defined in this interface to dynamically return the `Tag` instances that should be active at any moment. The existing
+system properties `kotlintest.tags.include` and `kotlintest.tags.exclude` are still valid and are not deprecated, but
+adding this new extension means extended scope for more complicated logic at runtime.
+
+An example might be to disable any Hadoop tests when not running in an environment that doesn't have the hadoop
+home env variable set. After creating a `TagExtension` it must be registered with the project config.
+
+```kotlin
+object Hadoop : Tag()
+
+object HadoopTagExtension : TagExtension {
+  override fun tags(): Tags =
+      if (System.getenv().containsKey("HADOOP_HOME")) Tags.include(Hadoop) else Tags.exclude(Hadoop)
+}
+
+object MyProjectConfig : AbstractProjectConfig() {
+  override fun extensions(): List<Extension> = listOf(HadoopTagExtension)
+}
+
+object SimpleTest : StringSpec({
+  "simple test" {
+    // this test would only run on environments that have hadoop configured
+  }.config(tags = setOf(Hadoop))
+})
+```
+
+* **Discovery Extensions: instantiate()**
 
 Inside the `DiscoveryExtension` interface the function `fun <T : Spec> instantiate(clazz: KClass<T>): Spec?` has been added which
 allows you to extend the way new instances of `Spec` are created. By default, a no-args constructor is assumed. However, if this
 function is overridden then it's possible to support `Spec` classes which have other constructors. For example, the Spring module
-now supports constructor injection using this extension. Other use cases might be when you want to always inject some config class.
+now supports constructor injection using this extension. Other use cases might be when you want to always inject some config class,
+or if you want to ensure that all your tests extend some custom interface or superclass.
+
+As a reminder, `DiscoveryExtension` instances are added to Project config.
 
 * **System out / error extensions**
 
@@ -206,6 +464,19 @@ class SpringAutowiredConstructorTest(service: UserService) : WordSpec({
   }
 })
 ```
+
+* **JUnit 4 Runner**
+
+A JUnit 4 runner has been added which allows KotlinTest to run using the legacy JUnit 4 platform.
+To use this, add `kotlintest-runner-junit4` to your build instead of `kotlintest-runner-junit5`.
+
+Note: This is intended for use when junit5 cannot be used.
+It should not be the first choice as functionality is restricted.
+
+Namely:
+
+* In intellij, test output will not be nested
+* Project wide beforeAll/afterAll cannot be supported.
 
 Version 3.0.x - March 29 2018
 -------------
@@ -425,7 +696,7 @@ The following matchers have been added for maps: `containAll`, `haveKeys`, `have
 which keys/values or entries were missing.
 
 New matchers added for Strings: `haveSameLengthAs(other)`, `beEmpty()`, `beBlank()`, `containOnlyDigits()`, `containADigit()`, `containIgnoringCase(substring)`,
-`beLowerCase()`, `beUpperCase()`.
+`lowerCase()`, `upperCase()`.
 
 New matchers for URIs: `haveHost(hostname)`, `havePort(port)`, `haveScheme(scheme)`.
 

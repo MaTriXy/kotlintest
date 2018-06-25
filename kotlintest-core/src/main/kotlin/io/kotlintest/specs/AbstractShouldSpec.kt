@@ -1,10 +1,12 @@
 package io.kotlintest.specs
 
 import io.kotlintest.AbstractSpec
-import io.kotlintest.TestCase
-import io.kotlintest.TestContainer
+import io.kotlintest.Tag
+import io.kotlintest.TestCaseConfig
 import io.kotlintest.TestContext
-import io.kotlintest.lineNumber
+import io.kotlintest.TestType
+import io.kotlintest.extensions.TestCaseExtension
+import java.time.Duration
 
 /**
  * Example:
@@ -29,28 +31,45 @@ abstract class AbstractShouldSpec(body: AbstractShouldSpec.() -> Unit = {}) : Ab
     body()
   }
 
-  final override fun isInstancePerTest(): Boolean = false
+  operator fun String.invoke(init: ShouldScope.() -> Unit) =
+      addTestCase(this, { this@AbstractShouldSpec.ShouldScope(this).init() }, defaultTestCaseConfig, TestType.Container)
 
-  fun should(name: String, test: TestContext.() -> Unit): TestCase {
-    val tc = TestCase(rootDescription().append("should $name"), this@AbstractShouldSpec, test, lineNumber(), defaultTestCaseConfig)
-    addRootScope(tc)
-    return tc
-  }
+  fun should(name: String, test: TestContext.() -> Unit) =
+      addTestCase("should $name", test, defaultTestCaseConfig, TestType.Test)
 
-  operator fun String.invoke(init: ShouldContext.() -> Unit) =
-      addRootScope(TestContainer(rootDescription().append(this), this@AbstractShouldSpec, { ShouldContext(it).init() }))
+  fun should(name: String) = Testbuilder({ test, config -> addTestCase("should $name", test, config, TestType.Test) })
 
-  inner class ShouldContext(val context: TestContext) {
-
-    operator fun String.invoke(init: ShouldContext.() -> Unit) =
-        context.addScope(TestContainer(context.currentScope().description().append(this), this@AbstractShouldSpec, { ShouldContext(it).init() }))
-
-    fun should(name: String, test: TestContext.() -> Unit): TestCase {
-      val tc = TestCase(context.currentScope().description().append("should $name"), this@AbstractShouldSpec, test, lineNumber(), defaultTestCaseConfig)
-      context.addScope(tc)
-      return tc
+  inner class Testbuilder(val register: (TestContext.() -> Unit, TestCaseConfig) -> Unit) {
+    fun config(
+        invocations: Int? = null,
+        enabled: Boolean? = null,
+        timeout: Duration? = null,
+        threads: Int? = null,
+        tags: Set<Tag>? = null,
+        extensions: List<TestCaseExtension>? = null,
+        test: TestContext.() -> Unit) {
+      val config = TestCaseConfig(
+          enabled ?: defaultTestCaseConfig.enabled,
+          invocations ?: defaultTestCaseConfig.invocations,
+          timeout ?: defaultTestCaseConfig.timeout,
+          threads ?: defaultTestCaseConfig.threads,
+          tags ?: defaultTestCaseConfig.tags,
+          extensions ?: defaultTestCaseConfig.extensions)
+      register(test, config)
     }
   }
 
+  @KotlinTestDsl
+  inner class ShouldScope(val context: TestContext) {
 
+    operator fun String.invoke(init: ShouldScope.() -> Unit) =
+        context.registerTestCase(this, this@AbstractShouldSpec, { this@AbstractShouldSpec.ShouldScope(this).init() }, this@AbstractShouldSpec.defaultTestCaseConfig, TestType.Container)
+
+    fun should(name: String, test: TestContext.() -> Unit) =
+        context.registerTestCase("should $name", this@AbstractShouldSpec, test, this@AbstractShouldSpec.defaultTestCaseConfig, TestType.Test)
+
+    fun should(name: String) =
+        this@AbstractShouldSpec.Testbuilder({ test, config -> context.registerTestCase("should $name", this@AbstractShouldSpec, test, config, TestType.Test) })
+
+  }
 }

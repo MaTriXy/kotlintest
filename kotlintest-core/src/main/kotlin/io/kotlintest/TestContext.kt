@@ -1,47 +1,48 @@
 package io.kotlintest
 
-import java.util.concurrent.CompletableFuture
+import io.kotlintest.specs.KotlinTestDsl
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * A [TestContext] is used as the receiver of a closure that represents a [TestScope]
- * so that functions inside the test scope can pass back events to the test runner.
- *
- * For example, asynchronous tests need to be queued and the runner needs to be informed
- * that even though the closure has completed, the test case is still pending. In addition, the
- * test runnner needs to know about any nested nested [TestScope]s that were discovered
- * when executing the closure.
+ * A [TestContext] is used as the receiver of a closure that is associated with a [TestCase].
+ * This allows the scope body to interact with the test engine, for instance, adding metadata
+ * during a test, reporting that an error was raised, or notifying the discovery
+ * of a nested scope.
  */
-interface TestContext {
+@KotlinTestDsl
+abstract class TestContext {
+
+  // needs to be thread safe as a context can be shared amongst many executing instances of the same scope
+  private val metadata = ConcurrentHashMap<String, Any?>()
 
   /**
    * Adds a value to this [TestContext] meta data.
    */
-  fun withMetaData(meta: Any)
+  fun putMetaData(key: String, value: Any?) {
+    metadata[key] = value
+  }
 
   /**
    * Returns all the metadata associated with this [TestContext]
    */
-  fun metaData(): List<Any>
+  fun metaData() = metadata.toMap()
 
   /**
-   * Notifies the framework that a nested [TestScope] has been discovered
-   * during the execution of a scope.
+   * Returns the [Description] of the current [TestCase].
    */
-  fun addScope(scope: TestScope): TestScope
+  abstract fun description(): Description
 
   /**
-   * Notifies the framework that an executing scope has an asynchronous
-   * operation pending.
+   * Creates a new [TestCase] as a child of the currently executing test
+   * and then notifies the test runner with the new instance.
    */
-  fun <T> whenReady(f: CompletableFuture<T>, test: (T) -> Unit)
+  fun registerTestCase(name: String, spec: Spec, test: TestContext.() -> Unit, config: TestCaseConfig, type: TestType) {
+    val tc = TestCase(description().append(name), spec, test, lineNumber(), type, config)
+    registerTestCase(tc)
+  }
 
   /**
-   * The [TestScope] associated with the current execution
+   * Notifies the test runner about a nested [TestCase].
    */
-  fun currentScope(): TestScope
-
-  /**
-   * The description of the current scope.
-   */
-  fun description(): Description
+  abstract fun registerTestCase(testCase: TestCase)
 }

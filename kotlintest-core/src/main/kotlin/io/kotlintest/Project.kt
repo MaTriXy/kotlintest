@@ -1,9 +1,11 @@
 package io.kotlintest
 
 import io.kotlintest.extensions.DiscoveryExtension
-import io.kotlintest.extensions.Extension
 import io.kotlintest.extensions.ProjectExtension
+import io.kotlintest.extensions.ProjectLevelExtension
 import io.kotlintest.extensions.SpecExtension
+import io.kotlintest.extensions.SystemPropertyTagExtension
+import io.kotlintest.extensions.TagExtension
 import io.kotlintest.extensions.TestCaseExtension
 import io.kotlintest.extensions.TestListener
 
@@ -48,21 +50,31 @@ object Project {
     }
   }
 
-  private val _extensions = mutableListOf<Extension>()
+  private val _extensions = mutableListOf<ProjectLevelExtension>().apply { add(SystemPropertyTagExtension) }
   private val _listeners = mutableListOf<TestListener>()
+  private val _filters = mutableListOf<ProjectLevelFilter>()
   private var parallelism: Int = 1
 
   fun discoveryExtensions(): List<DiscoveryExtension> = _extensions.filterIsInstance<DiscoveryExtension>()
   private fun projectExtensions(): List<ProjectExtension> = _extensions.filterIsInstance<ProjectExtension>()
   fun specExtensions(): List<SpecExtension> = _extensions.filterIsInstance<SpecExtension>()
   fun testCaseExtensions(): List<TestCaseExtension> = _extensions.filterIsInstance<TestCaseExtension>()
+  fun tagExtensions(): List<TagExtension> = _extensions.filterIsInstance<TagExtension>()
+
   fun listeners(): List<TestListener> = _listeners
+  fun testCaseFilters(): List<TestCaseFilter> = _filters.filterIsInstance<TestCaseFilter>()
 
   fun parallelism() = parallelism
+
+  fun tags(): Tags {
+    val tags = tagExtensions().map { it.tags() }
+    return if (tags.isEmpty()) Tags.Empty else tags.reduce { a, b -> a.combine(b) }
+  }
 
   private var projectConfig: AbstractProjectConfig? = discoverProjectConfig()?.apply {
     _extensions.addAll(this.extensions())
     _listeners.addAll(this.listeners())
+    _filters.addAll(this.filters())
     parallelism = System.getProperty("kotlintest.parallelism")?.toInt() ?: this.parallelism()
   }
 
@@ -79,12 +91,14 @@ object Project {
   }
 
   fun registerListeners(vararg listeners: TestListener) = listeners.forEach { registerListener(it) }
-  fun registerListener(listener: TestListener) {
+  private fun registerListener(listener: TestListener) {
     _listeners.add(listener)
   }
 
-  fun registerExtensions(vararg extensions: Extension) = extensions.forEach { registerExtension(it) }
-  fun registerExtension(extension: Extension) {
+  fun registerExtensions(vararg extensions: ProjectLevelExtension) = extensions.forEach { registerExtension(it) }
+  fun registerExtension(extension: ProjectLevelExtension) {
     _extensions.add(extension)
   }
+
+  fun testCaseOrder(): TestCaseOrder = projectConfig?.testCaseOrder() ?: TestCaseOrder.Sequential
 }

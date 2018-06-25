@@ -1,23 +1,26 @@
 package io.kotlintest
 
+import org.junit.platform.commons.annotation.Testable
 import java.io.Closeable
 import java.util.*
 
+@Testable
 abstract class AbstractSpec : Spec {
 
   override fun isInstancePerTest(): Boolean = false
 
-  private val rootScopes = mutableListOf<TestScope>()
+  private val rootTestCases = mutableListOf<TestCase>()
 
-  protected fun addRootScope(scope: TestScope) {
-    if (rootScopes.any { it.name() == scope.name() })
-      throw IllegalArgumentException("Cannot add scope with duplicate name ${scope.name()}")
-    rootScopes.add(scope)
+  override fun testCases(): List<TestCase> = rootTestCases.toList()
+
+  protected fun createTestCase(name: String, test: TestContext.() -> Unit, config: TestCaseConfig, type: TestType) =
+      TestCase(description().append(name), this, test, lineNumber(), type, config)
+
+  protected fun addTestCase(name: String, test: TestContext.() -> Unit, config: TestCaseConfig, type: TestType) {
+    if (rootTestCases.any { it.name == name })
+      throw IllegalArgumentException("Cannot add test with duplicate name $name")
+    rootTestCases.add(createTestCase(name, test, config, type))
   }
-
-  internal fun rootDescription() = Description(emptyList(), name())
-
-  override fun root(): SpecScope = SpecScope(rootDescription(), this, rootScopes.toList())
 
   private val closeablesInReverseOrder = LinkedList<Closeable>()
 
@@ -29,7 +32,7 @@ abstract class AbstractSpec : Spec {
     return closeable
   }
 
-  internal fun closeResources() {
+  override fun closeResources() {
     closeablesInReverseOrder.forEach { it.close() }
   }
 
