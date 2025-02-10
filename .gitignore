@@ -8,17 +8,27 @@
 *.war
 *.ear
 
-*.iml
-.idea
+.allure
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+*.iml
+.idea/**
+!.idea/icon.png
+
+# virtual machine crash logs, see https://www.java.com/en/download/help/error_hotspot.html
 hs_err_pid*
 out/
 
 build
 target
-.idea
 .gradle
+
+# FIXME remove when Gradle Daemon JVM can be auto-provisioned - see configureGradleDaemonJvm()
+gradle/gradle-daemon-jvm.properties
+
+.kotlin/
+
+build/test-results
+kotest-tests/kotest-tests-htmlreporter/reports/
 
 allure-results/
 
@@ -26,8 +36,18 @@ allure-results/
 !gradle/wrapper/gradle-wrapper.jar
 
 allure.log
-kotlintest.log
-kotlintest-tests-junit-report.log
-kotlintest-tests-core.log
+kotest-*.log
 
 local.properties
+.kotest
+/kotest-examples/kotest-examples-javascript/node_modules/
+/kotest-examples/kotest-examples-javascript/package-lock.json
+*.gpg.enc
+
+kotest-tests/kotest-tests-js/node_modules/
+documentation/site/
+node_modules/
+
+.docusaurus
+.DS_Store
+yarn.lock

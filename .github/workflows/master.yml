@@ -1,0 +1,68 @@
+name: master
+
+on:
+   push:
+      paths-ignore:
+         - 'doc/**'
+         - 'documentation/**'
+         - '*.md'
+         - '*.yml'
+         - '.github/workflows/**'
+      branches:
+         - master
+
+permissions:
+   contents: read
+
+jobs:
+
+   validate-api:
+      name: Validate API
+      if: github.repository == 'kotest/kotest'
+      uses: ./.github/workflows/run-gradle.yml
+      secrets: inherit
+      with:
+         runs-on: ubuntu-latest
+         ref: ${{ inputs.ref }}
+         task: apiCheck
+
+   validate-primary:
+      name: Validate on primary runner
+      if: github.repository == 'kotest/kotest'
+      needs: validate-api
+      uses: ./.github/workflows/run-gradle.yml
+      secrets: inherit
+      with:
+         runs-on: ubuntu-latest
+         ref: ${{ inputs.ref }}
+         task: check
+
+   validate-secondary:
+      name: Validate on secondary runners
+      if: github.repository == 'kotest/kotest'
+      needs: [ validate-api, validate-primary ]
+      strategy:
+         matrix:
+            include:
+               -  os: macos-latest
+               -  os: windows-latest
+         fail-fast: false
+      uses: ./.github/workflows/run-gradle.yml
+      secrets: inherit
+      with:
+         runs-on: ${{ matrix.os }}
+         ref: ${{ inputs.ref }}
+         task: check
+
+   publish-sonatype:
+      name: Publish all artifacts to Sonatype (Maven Central)
+      if: github.repository == 'kotest/kotest'
+      needs: [ validate-api, validate-primary, validate-secondary ]
+      uses: ./.github/workflows/run-gradle.yml
+      secrets: inherit
+      with:
+         runs-on: macos-latest
+         ref: ${{ inputs.ref }}
+         # TODO remove `--continue` when Kotest Gradle Plugin publishing works
+         #      https://github.com/kotest/kotest/issues/4012#issuecomment-2241294938
+         task: publishAllPublicationsToDeployRepository --continue
